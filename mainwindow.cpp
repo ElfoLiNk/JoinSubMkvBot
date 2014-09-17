@@ -35,15 +35,13 @@ void MainWindow::on_folderPushButton_clicked()
     ui->folderLineEdit->setText(folder);
     QDir recoredDir(folder);
     allFiles = recoredDir.entryList(QDir::NoDotAndDotDot | QDir::System | QDir::Hidden  | QDir::AllDirs | QDir::Files, QDir::DirsFirst);
-    //(QDir::Filter::Files,QDir::SortFlag::NoSort)
-    //partFiles = allFiles.filter(type,Qt::CaseSensitive);
-    partFiles = allFiles.filter(format,Qt::CaseSensitive);
+    videos = allFiles.filter(format,Qt::CaseSensitive);
     ui->joinPushButton->setEnabled(true);
 }
 
 void MainWindow::on_joinPushButton_clicked()
 {
-    if(!partFiles.isEmpty()){
+    if(!videos.isEmpty()){
         do{
             findSubtitle();
 
@@ -57,17 +55,17 @@ void MainWindow::on_joinPushButton_clicked()
             arguments.append("-o");
             QString output = '"'+folder+"/"+film.remove(format)+".mkv"+'"';
             arguments.append(output);
-            QString input = '"'+folder+"/"+partFiles.at(0)+'"';
+            QString input = '"'+folder+"/"+videos.at(0)+'"';
             arguments.append(input);
 
 
-            foreach(QString subtitle , filmPart){
+            foreach(QString subtitle , subtitles){
                 if(subtitle.contains("it")){
-                    arguments.append("--language \"0:it\" --track-name \"0:Italian\" \""+folder+"/"+subtitle+'"');
+                    arguments.append("--language \"0:it\" --track-name \"0:Italian\" -s 0 -D -A \""+folder+"/"+subtitle+'"');
                 }else if (subtitle.contains("en")){
-                    arguments.append("--language \"0:en\" --track-name \"0:English\" \""+folder+"/"+subtitle+'"');
+                    arguments.append("--language \"0:en\" --track-name \"0:English\" -s 0 -D -A \""+folder+"/"+subtitle+'"');
                 }else {
-                    arguments.append("--language \"0:it\" --track-name \"0:Italian\" \""+folder+"/"+subtitle+'"');
+                    arguments.append("--language \"0:it\" --track-name \"0:Italian\" -s 0 -D -A \""+folder+"/"+subtitle+'"');
                 }
 
             }
@@ -111,7 +109,9 @@ void MainWindow::on_joinPushButton_clicked()
             }
 
 #endif
-        }while(ui->autoCheckBox->isChecked() && !partFiles.isEmpty());
+
+         subtitles.clear();
+        }while(ui->autoCheckBox->isChecked() && !videos.isEmpty());
     }else{
         ui->logTextEdit->append("Nothing to join");
     }
@@ -127,11 +127,9 @@ void MainWindow::updateOutputTextEdit()
 
 
 void MainWindow::findSubtitle() {
-    film = partFiles.at(0);
-    filmPart.append(allFiles.filter(film.remove(format),Qt::CaseSensitive).filter(type,Qt::CaseSensitive));
-    for(int i = 0; i < filmPart.size();i++){
-        partFiles.removeAll(filmPart.at(i));
-    }
+    film = videos.at(0);
+    videos.removeFirst();
+    subtitles.append(allFiles.filter(film.remove(format),Qt::CaseSensitive).filter(type,Qt::CaseSensitive));
 }
 
 void MainWindow::processFinished(int exitCode,
@@ -146,8 +144,8 @@ void MainWindow::processFinished(int exitCode,
     } else {
         ui->logTextEdit->append(tr("File %1 created").arg(film));
         if(deleteOriginal){
-            for(int i = 0;i < filmPart.size();i++){
-                QFile filefilm(folder+"/"+filmPart.at(i));
+            for(int i = 0;i < subtitles.size();i++){
+                QFile filefilm(folder+"/"+subtitles.at(i));
                 filefilm.setPermissions(QFile::ReadOther | QFile::WriteOther);
                 bool info = filefilm.remove();
                 QString error = filefilm.errorString();
@@ -160,7 +158,7 @@ void MainWindow::processFinished(int exitCode,
             filefilm.close();
             //filmCD.clear();
         }
-        filmPart.clear();
+        subtitles.clear();
     }
     ui->joinPushButton->setEnabled(true);
 }

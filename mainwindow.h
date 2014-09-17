@@ -41,8 +41,8 @@ private:
     QString folder;
     QFileSystemModel model;
     QStringList allFiles;
-    QStringList partFiles;
-    QStringList filmPart;
+    QStringList videos;
+    QStringList subtitles;
     QProcess *process;
     QString film;
     void findSubtitle();
